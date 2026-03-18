@@ -189,14 +189,6 @@ python main.py
 
 ---
 
-## 👨‍💻 Author
-
-**Your Name**
-
-* GitHub: https://github.com/YOUR_USERNAME
-
----
-
 ## ⭐ Contribute
 
 Feel free to fork this repo and improve:
@@ -205,14 +197,5 @@ Feel free to fork this repo and improve:
 * UI/UX
 * Performance
 
-Pull requests are welcome!
-
----
-
 ## 📜 License
-
 This project is open-source and available under the **MIT License**.
-
----
-
-🔥 *Built as a fusion of AI + Game Development for learning and experimentation.*
