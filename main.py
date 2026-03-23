@@ -2,6 +2,7 @@ import pygame
 import sys
 from ga import create_population
 from enemy import bfs_next_step
+from ga import generate_solvable_grid
 
 pygame.init()
 
@@ -21,9 +22,12 @@ RED = (200,0,0)
 BLUE = (0,0,200)
 YELLOW = (255,255,0)
 
-# 🔥 Difficulty
+#Difficulty
 difficulty = "easy"
 enemy_speed = 10
+
+# Wrap-around navigation
+enable_wrap = True
 
 def set_difficulty():
     global enemy_speed
@@ -34,7 +38,7 @@ def set_difficulty():
     else:
         enemy_speed = 4
 
-# 🔘 Button UI
+# Button UI
 def draw_button(text, x, y, w, h, color, hover_color):
     rect = pygame.Rect(x, y, w, h)
     mouse = pygame.mouse.get_pos()
@@ -51,17 +55,21 @@ def draw_button(text, x, y, w, h, color, hover_color):
 
     return rect
 
-# 🎮 Generate map
+# Generate map
 population = create_population(20)
-grid = population[0]
+from ga import generate_solvable_grid
+grid = generate_solvable_grid()
 
 player = [0,0]
 enemy = [9,9]
+second_enemy = None
 goal = [9,9]
 
 steps = 0
 clock = pygame.time.Clock()
 enemy_timer = 0
+game_timer = 0  # Track total time in game
+SECOND_ENEMY_SPAWN_TIME = 70  # Approximately 7 seconds (at 10 FPS)
 
 game_state = "menu"
 
@@ -79,6 +87,11 @@ def draw_grid():
 
     pygame.draw.rect(screen, GREEN, (player[1]*CELL_SIZE, player[0]*CELL_SIZE, CELL_SIZE, CELL_SIZE))
     pygame.draw.rect(screen, YELLOW, (enemy[1]*CELL_SIZE, enemy[0]*CELL_SIZE, CELL_SIZE, CELL_SIZE))
+    
+    # Draw second enemy if it exists
+    if second_enemy is not None:
+        pygame.draw.rect(screen, YELLOW, (second_enemy[1]*CELL_SIZE, second_enemy[0]*CELL_SIZE, CELL_SIZE, CELL_SIZE))
+    
     pygame.draw.rect(screen, RED, (goal[1]*CELL_SIZE, goal[0]*CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
 def draw_menu():
@@ -91,40 +104,70 @@ def draw_menu():
     med = draw_button("MEDIUM", 260, 200, 100, 50, BLUE, (0,0,255))
     hard = draw_button("HARD", 370, 200, 100, 50, RED, (255,0,0))
 
-    start = draw_button("START", 230, 300, 140, 60, (100,100,255), (50,50,200))
+    # Wrap-around navigation toggle
+    wrap_color = (100, 200, 100) if enable_wrap else (200, 100, 100)
+    wrap_text = "WRAP: ON" if enable_wrap else "WRAP: OFF"
+    wrap_button = draw_button(wrap_text, 200, 270, 200, 40, wrap_color, (150, 255, 150) if enable_wrap else (255, 150, 150))
 
-    return start, easy, med, hard
+    start = draw_button("START", 230, 340, 140, 60, (100,100,255), (50,50,200))
+
+    return start, easy, med, hard, wrap_button
 
 def restart():
-    global player, enemy, steps, game_state
+    global player, enemy, second_enemy, steps, game_state, game_timer
     player = [0,0]
     enemy = [9,9]
+    second_enemy = None
     steps = 0
+    game_timer = 0
     game_state = "playing"
     set_difficulty()
 
-# 🔁 GAME LOOP
+#  GAME LOOP
 while True:
     screen.fill(WHITE)
 
     if game_state == "menu":
-        start_btn, easy_btn, med_btn, hard_btn = draw_menu()
+        start_btn, easy_btn, med_btn, hard_btn, wrap_btn = draw_menu()
 
     elif game_state == "playing":
         draw_grid()
 
         step_text = font.render(f"Steps: {steps}", True, BLACK)
         screen.blit(step_text, (10, 10))
+        
+        # Display countdown for second enemy
+        if second_enemy is None:
+            remaining_ticks = SECOND_ENEMY_SPAWN_TIME - game_timer
+            remaining_seconds = max(0, (remaining_ticks + 9) // 10)  # Round up
+            countdown_text = font.render(f"2nd Enemy in: {remaining_seconds}s", True, RED)
+            screen.blit(countdown_text, (10, 40))
+        else:
+            second_active_text = font.render("2nd Enemy ACTIVE! ⚠️", True, RED)
+            screen.blit(second_active_text, (10, 40))
+        
+        # Increment game timer
+        game_timer += 1
+        
+        # Spawn second enemy after ~7 seconds (70 ticks at 10 FPS)
+        if second_enemy is None and game_timer >= SECOND_ENEMY_SPAWN_TIME:
+            second_enemy = [0, 0]  # Spawn at top-left corner
 
+        # Move both enemies with same timer
         enemy_timer += 1
         if enemy_timer >= enemy_speed:
             enemy[:] = bfs_next_step(grid, enemy, player)
+            
+            # Move second enemy too
+            if second_enemy is not None:
+                second_enemy[:] = bfs_next_step(grid, second_enemy, player)
+            
             enemy_timer = 0
 
         if player == goal:
             game_state = "win"
 
-        if player == enemy:
+        if player == enemy or (second_enemy is not None and player == second_enemy):
             game_state = "lose"
 
     elif game_state == "win":
@@ -156,6 +199,8 @@ while True:
                     difficulty = "medium"
                 elif hard_btn.collidepoint(mx, my):
                     difficulty = "hard"
+                elif wrap_btn.collidepoint(mx, my):
+                    enable_wrap = not enable_wrap
 
             elif game_state in ["win", "lose"]:
                 if restart_btn.collidepoint(mx, my):
@@ -168,8 +213,15 @@ while True:
             if event.key == pygame.K_LEFT: dc = -1
             if event.key == pygame.K_RIGHT: dc = 1
 
-            nr = (player[0] + dr) % ROWS   # ✅ player wrap allowed
-            nc = (player[1] + dc) % COLS
+            if enable_wrap:
+                nr = (player[0] + dr) % ROWS   #  Wrap-around enabled
+                nc = (player[1] + dc) % COLS
+            else:
+                nr = player[0] + dr  # No wrap-around
+                nc = player[1] + dc
+                # Check boundaries
+                if nr < 0 or nr >= ROWS or nc < 0 or nc >= COLS:
+                    nr, nc = player[0], player[1]  # Stay in place
 
             if grid[nr][nc] != '#':
                 player = [nr, nc]
