@@ -190,7 +190,6 @@ python main.py
 * UI/UX design in games
 * State management in real-time systems
 
-
 ---
 
 ## ⭐ Contribute
