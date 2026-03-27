@@ -28,12 +28,14 @@ def bfs_next_step(grid, start, target):
                 r, c = parent[(r, c)]
 
             return [r, c]
+            
 
         # Explore neighbors
         for dr, dc in directions:
             nr = r + dr
             nc = c + dc
 
+            
             # No wrap-around
             if 0 <= nr < rows and 0 <= nc < cols:
                 if grid[nr][nc] != '#' and (nr, nc) not in visited:
@@ -43,3 +45,4 @@ def bfs_next_step(grid, start, target):
 
     #  If target unreachable → stay in same position
     return list(start)
+    
