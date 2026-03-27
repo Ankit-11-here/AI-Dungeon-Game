@@ -42,7 +42,7 @@ This project combines **Game Development + Artificial Intelligence concepts** to
 * Player starts at **S (Start)**
 * Goal is to reach **E (End)**
 * Avoid enemy (🟡)
-* Walls (#) block movement
+* Walls (#) block movement 
 
 ---
 
@@ -55,6 +55,7 @@ This project combines **Game Development + Artificial Intelligence concepts** to
 * Adds strategic gameplay advantage
 
 ---
+
 
 ### 🎯 Difficulty System
 
@@ -188,6 +189,7 @@ python main.py
 * Optimization using **Genetic Algorithms**
 * UI/UX design in games
 * State management in real-time systems
+
 
 ---
 
