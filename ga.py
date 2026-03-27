@@ -3,7 +3,6 @@ from solver import bfs_solve
 
 ROWS, COLS = 10, 10
 
-
 # Create a single random map
 def create_map():
     grid = [['.' for _ in range(COLS)] for _ in range(ROWS)]
